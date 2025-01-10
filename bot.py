@@ -6,7 +6,6 @@ import random
 # ORE = <Resources.ORE: 4>
 
 from api import *
-from typing import Tuple
 import random
 import math
 
@@ -28,18 +27,20 @@ class MyBot(CatanBot):
     def set_fixed_land_value_to_virtual(self):
         self.fixed_land_value = self.virtual_land_value
 
-    def rank_land(self, position: Tuple[int, int]):
+    def rank_land(self, position):
         land = self.context.get_land(position)
         if land is None:
             return 0
         land_num = self.context.get_number(position)
+        if land_num is None:
+            return 0
         land_score = self.land_num_to_score[land_num]
         value = self.virtual_land_value[land.value] * land_score
         self.virtual_land_value[land.value] /= self.divide_when_taken[land.value]
         return value
 
-    def rank_intersection(self, position: Tuple[int, int]):
-        terrains: List[Tuple[int, int]] = self.context.get_adjacent_terrains(position)
+    def rank_intersection(self, position):
+        terrains = self.context.get_adjacent_terrains(position)
         self.virtual_land_value = self.fixed_land_value[::]
         res = sum(self.rank_land(land_pos) for land_pos in terrains)
         self.set_fixed_land_value_to_virtual()
