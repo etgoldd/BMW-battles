@@ -4,64 +4,68 @@ import math
 
 
 class PRICES:
-    ROAD = ResourceCounts(lumber=1, brick=1),
+    ROAD = ResourceCounts(lumber=1, brick=1)
     SETTLEMENT = ResourceCounts(lumber=1, brick=1, grain=1, wool=1)
     CITY = ResourceCounts(grain=2, ore=3)
     DEVELOPMENT_CARD = ResourceCounts(grain=1, wool=1, ore=1)
 
 class MyBot(CatanBot):
-    def rank_land(self, position, curr_land_worth):
+    # [LUMBER, BRICK, GRAIN, WOOL, ORE, DESERT]
+    fixed_land_value = [16, 16, 16, 16, 16, 0]
+    virtual_land_value = [16, 16, 16, 16, 16, 0]
+    divide_when_taken = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
+
+    land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1, 7: 0}
+    min_count_to_trade = 6
+    development_card_chance = 3
+
+    def set_fixed_land_value_to_virtual(self):
+        self.fixed_land_value = self.virtual_land_value
+
+    def rank_land(self, position):
         land = self.context.get_land(position)
         if land is None:
             return 0
         land_num = self.context.get_number(position)
         if land_num is None:
             return 0
-
-        score = self.land_num_to_score[land_num]
-        res = self.land_worth_mult[land.value] * curr_land_worth[land.value] * score
-        curr_land_worth[land.value] -= score
-        return res
-
-    def update_land_worth_after_buy(self, intersection_position):
-        # Calling rank_land with self.land_worth on each land updates it directly.
-        terrains = self.context.get_adjacent_terrains(intersection_position)
-        for land_pos in terrains:
-            self.rank_land(land_pos, self.land_worth)
+        land_score = self.land_num_to_score[land_num]
+        value = self.virtual_land_value[land.value] * land_score
+        return value
 
     def rank_intersection(self, position):
         terrains = self.context.get_adjacent_terrains(position)
-        temp_land_worth = self.land_worth[::]
-        res = sum(self.rank_land(land_pos, temp_land_worth) for land_pos in terrains)
+        self.virtual_land_value = self.fixed_land_value[::]
+        res = sum(self.rank_land(land_pos) for land_pos in terrains)
+        self.set_fixed_land_value_to_virtual()
         return res
 
     def setup(self):
         self.current_stage = 1
         self.city_amounts = 0
 
-        # [LUMBER, BRICK, GRAIN, WOOL, ORE, DESERT]
-        self.land_worth = [36, 36, 36, 36, 36, 0]
-        self.land_worth_mult = [1, 1, 1, 0.99, 1, 1]  # slightly less want wool
-
-        self.land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
-        self.min_count_to_trade = 6
-        self.development_card_chance = 3
-
     def play(self):
+        has_settlement_location = len(self.valid_settlement_locations_now()) != 0
+        self.context.log_info(f"has_settlement_location: {has_settlement_location}")
         self.cards = self.context.get_resource_counts()
         if self.build_city():
             return
         elif self.build_settlement():
             return
-        elif self.build_road():
+        elif self.build_road(PRICES.SETTLEMENT if has_settlement_location else None):
             return
         elif self.trade_with_bank():
             return
-        elif self.try_build_development_cards():
+        elif self.try_build_development_cards(PRICES.SETTLEMENT if has_settlement_location else None):
             return
         return
 
-    def try_build_development_cards(self):
+    def try_build_development_cards(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.DEVELOPMENT_CARD):
+            return False
         if random.randint(0, self.development_card_chance):
             if self.context.buy_development_card() == Exceptions.OK:
                 return True
@@ -76,48 +80,75 @@ class MyBot(CatanBot):
         elif dev_cards[DevelopmentCards.MONOPOLY] > 0:
             self.context.play_monopoly(self.most_needed_resource())
         elif dev_cards[DevelopmentCards.ROAD_BUILDING] > 0:
-            roads_near_roads = self.get_roads_next_to_road()
-            # Try to play 2 roads
-            if len(roads_near_roads) >= 2:
-                self.context.play_road_building(roads_near_roads[:1])  # TODO: fix
+            pass # self.context.play_road_building(self.)  # TODO: fix
         elif dev_cards[DevelopmentCards.KNIGHT] > 0:
             self.context.play_knight()
 
-    def build_city(self):
+    def build_city(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.CITY):
+            return False
         buildings = self.context.get_player_buildings(self.context.get_player_index())
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
                 e = self.context.build_city(pos)
                 if e == Exceptions.OK:
                     self.city_amounts += 1
-                    self.update_land_worth_after_buy(pos)
                     return True
                 else:
                     return False
         return False
+    
+    def valid_settlement_locations_now(self):
+        roads = self.context.get_player_roads(self.context.get_player_index())
+        valid_locations=[]
+        for intersection in self.context.get_intersections():
+            if self.context.get_current_building(intersection):
+                continue
+            edges = self.context.get_adjacent_edges(intersection)
+            if not (set(roads) & set(edges)):
+                continue
+            adj_intersections = self.context.get_adjacent_intersections(intersection)
+            for adj in adj_intersections:
+                if self.context.get_current_building(adj):
+                    break
+            else:
+                valid_locations.append(intersection)
+        return valid_locations
 
-    def build_settlement(self):
+    def build_settlement(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.SETTLEMENT):
+            return False
         intersections= self.context.get_intersections()
         random.shuffle(intersections)
         for intersection in intersections:
             e = self.context.build_settlement(intersection)
             if e == Exceptions.OK:
                 self.context.log_info("built settlement")
-                self.update_land_worth_after_buy(intersection)
                 return True
             elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
             elif e == Exceptions.ILLEGAL_POSITION:
                 pass
+
         return False
 
-    def build_road(self):
+    def build_road(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.ROAD):
+            return False
         edges= self.context.get_edges()
         random.shuffle(edges)
         for edge in edges:
             e = self.context.build_road(edge)
             if e == Exceptions.OK:
-                self.context.log_info("built road")
                 return True
             elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
@@ -140,20 +171,17 @@ class MyBot(CatanBot):
         return False
 
     def place_settlement_and_road(self):
-        best_position: Position | None = None
-        best_rank = 0
-        for position in self.context.get_intersections():
-            if self.context.get_current_building(position):
-                continue
-            rank = self.rank_intersection(position)
-            if rank > best_rank:
-                best_position = position
-                best_rank = rank
-        if best_position:
-            self.context.build_settlement(best_position)
-            #  Update worth of resources because the ones we bought are less needed.
-            self.update_land_worth_after_buy(best_position)
-            self.context.build_road(self.context.get_adjacent_edges(best_position)[0])
+        position_ranks = [(position, self.rank_intersection(position))
+                          for position in self.context.get_intersections()]
+        self.context.log_info(position_ranks)
+        position_ranks.sort(key=lambda x: x[1], reverse=True)
+        self.context.log_info(position_ranks)
+        for pos in position_ranks:
+            e = self.context.build_settlement(pos[0])
+            if e == Exceptions.OK:
+                self.context.log_info(f"built settlement at {pos[0]}")
+                self.context.build_road(self.context.get_adjacent_edges(pos[0])[0])
+                break
 
     def drop_resources(self):
         """
@@ -185,8 +213,8 @@ class MyBot(CatanBot):
             building: tuple[Position, Buildings]
             my_terrains = my_terrains.union(self.context.get_adjacent_terrains(building[0]))
         return my_terrains
-
-
+        
+    
     def get_other_player_indexes(self) -> list[int]:
         """
         Returns a list of the player indexes that aren't ours
