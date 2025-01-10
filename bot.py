@@ -37,14 +37,12 @@ class MyBot(CatanBot):
             return 0
         land_score = self.land_num_to_score[land_num]
         value = self.virtual_land_value[land.value] * land_score
-        # self.virtual_land_value[land.value] *= self.divide_when_taken[land.value]
         return value
 
     def rank_intersection(self, position):
         terrains = self.context.get_adjacent_terrains(position)
         self.virtual_land_value = self.fixed_land_value[::]
         res = sum(self.rank_land(land_pos) for land_pos in terrains)
-        # self.context.log_info("rank_intersection " + str(position) + str(res))
         self.set_fixed_land_value_to_virtual()
         return res
 
@@ -80,40 +78,50 @@ class MyBot(CatanBot):
         elif dev_cards[DevelopmentCards.MONOPOLY] > 0:
             self.context.play_monopoly(self.most_needed_resource())
         elif dev_cards[DevelopmentCards.ROAD_BUILDING] > 0:
-            self.context.play_road_building(self.)  # TODO: fix
+            pass # self.context.play_road_building(self.)  # TODO: fix
         elif dev_cards[DevelopmentCards.KNIGHT] > 0:
             self.context.play_knight()
 
     def build_city(self):
+        self.context.log_info("building city")
         buildings = self.context.get_player_buildings(self.context.get_player_index())
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
-                self.context.build_city(pos)
+                self.context.log_info("found settlement")
+                e = self.context.build_city(pos)
+                if e == Exceptions.OK:
+                    return True
+                else:
+                    return False
+        return False
 
     def build_settlement(self):
+        self.context.log_info("building settlement")
         intersections= self.context.get_intersections()
         random.shuffle(intersections)
         for intersection in intersections:
-            try:
-                self.context.build_settlement(intersection)
+            e = self.context.build_settlement(intersection)
+            self.context.log_info("built settlement")
+            if e == Exceptions.OK:
                 return True
-            except Exceptions.NOT_ENOUGH_RESOURCES:
+            elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
-            except Exceptions.ILLEGAL_POSITION:
+            elif e == Exceptions.ILLEGAL_POSITION:
                 pass
 
         return False
 
     def build_road(self):
+        self.context.log_info("building road")
         edges= self.context.get_edges()
         random.shuffle(edges)
         for edge in edges:
-            try:
-                self.context.build_road(edge)
+            e = self.context.build_road(edge)
+            if e == Exceptions.OK:
                 return True
-            except Exceptions.NOT_ENOUGH_RESOURCES:
+            elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
-            except Exceptions.ILLEGAL_POSITION:
+            elif e == Exceptions.ILLEGAL_POSITION:
                 pass
         return
 
@@ -122,10 +130,12 @@ class MyBot(CatanBot):
         return Resources(res_counts.index(min(res_counts)))
 
     def trade_with_bank(self):
+        self.context.log_info("trading with bank")
         res_counts = self.context.get_resource_counts()
         min_resource = self.most_needed_resource()
         for i, count in enumerate(res_counts):
             if count >= self.min_count_to_trade:
+                self.context.log_info(f"trading {i} with {min_resource}")
                 self.context.maritime_trade(min_resource, Resources(min_resource))
                 return True
         return False
