@@ -20,7 +20,7 @@ class MyBot(CatanBot):
     virtual_land_value = [16, 16, 16, 16, 16, 0]
     divide_when_taken = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
 
-    land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
+    land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1, 7: 0}
     min_count_to_trade = 6
     development_card_chance = 3
 
@@ -82,11 +82,9 @@ class MyBot(CatanBot):
             self.context.play_knight()
 
     def build_city(self):
-        self.context.log_info("building city")
         buildings = self.context.get_player_buildings(self.context.get_player_index())
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
-                self.context.log_info("found settlement")
                 e = self.context.build_city(pos)
                 if e == Exceptions.OK:
                     return True
@@ -95,12 +93,10 @@ class MyBot(CatanBot):
         return False
 
     def build_settlement(self):
-        self.context.log_info("building settlement")
         intersections= self.context.get_intersections()
         random.shuffle(intersections)
         for intersection in intersections:
             e = self.context.build_settlement(intersection)
-            self.context.log_info("built settlement")
             if e == Exceptions.OK:
                 return True
             elif e == Exceptions.NOT_ENOUGH_RESOURCES:
@@ -111,7 +107,6 @@ class MyBot(CatanBot):
         return False
 
     def build_road(self):
-        self.context.log_info("building road")
         edges= self.context.get_edges()
         random.shuffle(edges)
         for edge in edges:
@@ -172,8 +167,9 @@ class MyBot(CatanBot):
         my_terrains = set()
         for building in buildings:
             building: tuple[Position, Buildings]
-            my_terrains.union(self.context.get_adjacent_terrains(building[0]))
+            my_terrains = my_terrains.union(self.context.get_adjacent_terrains(building[0]))
         return my_terrains
+        
     
     def get_other_player_indexes(self) -> list[int]:
         """
@@ -191,22 +187,16 @@ class MyBot(CatanBot):
         """
         Generates the set of terrains that we aren't on and the enemy is on
         """
-        my_terrains = self.context.get_player_terrains(self.context.get_player_index())
-        random.shuffle(my_terrains)
-        other_terrain_groups = [self.get_player_terrains(index) for index in self.get_other_player_indexes()]
-        enemy_terrains = set()
-        for other_terrains in other_terrain_groups:
-            enemy_terrains.union(other_terrains)
-        target_terrains: set[Position] = enemy_terrains.difference(my_terrains)
-
-        best_target: Position = target_terrains[0]
-        best_score = self.land_num_to_score[self.context.get_number(best_target)]
+        my_terrains = self.get_player_terrains(self.context.get_player_index())
+        target_terrains = set(self.context.get_terrains()).difference(my_terrains)
+        target_terrains.remove((0,0))
+        best_score = 0
+        best_target = None
         for target_terrain in target_terrains:
-            if self.context.get_number(target_terrain) > best_score:
-                best_score = self.context.get_number(target_terrain)
+            if self.context.get_number(target_terrain) is not None and self.land_num_to_score.get(self.context.get_number(target_terrain)) > best_score:
+                best_score = self.land_num_to_score.get(self.context.get_number(target_terrain))
                 best_target = target_terrain
-        for player_index in self.get_other_player_indexes():
-            if self.context.move_robber(best_target, player_index) == Exceptions.OK:
-                return
+        if self.context.move_robber(best_target, -1) != Exceptions.ILLEGAL_PLAYER_INDEX:
+            return
             
             
