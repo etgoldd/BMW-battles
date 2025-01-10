@@ -7,6 +7,12 @@
 from api import *
 from typing import Tuple
 
+class PRICES:
+    ROAD = ResourceCounts(lumber=1, brick=1),
+    SETTLEMENT = ResourceCounts(lumber=1, brick=1, grain=1, wool=1)
+    CITY = ResourceCounts(grain=2, ore=3)
+    DEVELOPMENT_CARD = ResourceCounts(grain=1, wool=1, ore=1)
+
 class MyBot(CatanBot):
     fixed_land_value = [16, 16, 16, 16, 16, 0]
     virtual_land_value = [16, 16, 16, 16, 16, 0]
@@ -33,12 +39,36 @@ class MyBot(CatanBot):
         res = sum(self.rank_land(land_pos) for land_pos in terrains)
         self.set_virtual_land_value_to_fixed()
         return res
-    
+
     def setup(self):
         pass
 
     def play(self):
+        self.cards = self.context.get_resource_counts()
+        if self.build_city():
+            return
+        elif self.build_settlement():
+            return
+        elif self.build_road():
+            return
+        elif self.trade_with_bank():
+            return
+        return
+
+    def build_city(self):
+        return
+
+    def build_settlement(self):
+        return
+
+    def build_road(self):
+        return
+
+    def trade_with_bank(self):
+        return
+
+    def place_settlement_and_road(self):
         pass
 
-    def place_settlements_and_roads(self):
-        pass
+    def drop_resources(self):
+        resources = self.context.set_resources_to_drop()
