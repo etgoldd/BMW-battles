@@ -20,7 +20,7 @@ class MyBot(CatanBot):
 
     land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
 
-    def set_virtual_land_value_to_fixed(self):
+    def set_fixed_land_value_to_virtual(self):
         self.fixed_land_value = self.virtual_land_value
 
     def rank_land(self, position: Tuple[int, int]):
@@ -37,7 +37,7 @@ class MyBot(CatanBot):
         terrains: List[Tuple[int, int]] = self.context.get_adjacent_terrains(position)
         self.virtual_land_value = self.fixed_land_value[::]
         res = sum(self.rank_land(land_pos) for land_pos in terrains)
-        self.set_virtual_land_value_to_fixed()
+        self.set_fixed_land_value_to_virtual()
         return res
 
     def setup(self):
@@ -68,7 +68,18 @@ class MyBot(CatanBot):
         return
 
     def place_settlement_and_road(self):
-        pass
+        best_position: Position | None = None
+        best_rank = 0
+        for position in self.context.get_intersections():
+            if self.context.get_current_building(position):
+                continue
+            rank = self.rank_intersection(position)
+            if rank > best_rank:
+                best_position = position
+                best_rank = rank
+        if best_position:
+            self.context.build_settlement(best_position)
+            self.context.build_road(self.context.get_adjacent_edges(best_position)[0])
 
     def drop_resources(self):
         resources = self.context.set_resources_to_drop()
