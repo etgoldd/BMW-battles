@@ -79,8 +79,6 @@ class MyBot(CatanBot):
 
         return False
 
-
-
     def build_road(self):
         return
 
@@ -115,4 +113,46 @@ class MyBot(CatanBot):
                     break
         self.context.set_resources_to_drop(resources)
 
+    def get_player_terrains(self, player_index: int) -> set[Position]:
+        buildings = self.context.get_player_buildings(player_index)
+        my_terrains = set()
+        for building in buildings:
+            building: tuple[Position, Buildings]
+            my_terrains.union(self.context.get_adjacent_terrains(building[0]))
+        return my_terrains
+    
+    def get_other_player_indexes(self) -> list[int]:
+        """
+        Returns a list of the player indexes that aren't ours
+        """
+        indexes = []
+        for player_index in range(4):
+            if player_index == self.context.get_player_index():
+                continue
+            if len(self.context.get_player_buildings(player_index)) == 0:
+                indexes.append(player_index)
+        return indexes
+
+    def move_robber(self):
+        """
+        Generates the set of terrains that we aren't on and the enemy is on
+        """
+        my_terrains = self.context.get_player_terrains(self.context.get_player_index())
+        random.shuffle(my_terrains)
+        other_terrain_groups = [self.get_player_terrains(index) for index in self.get_other_player_indexes()]
+        enemy_terrains = set()
+        for other_terrains in other_terrain_groups:
+            enemy_terrains.union(other_terrains)
+        target_terrains: set[Position] = enemy_terrains.difference(my_terrains)
+
+        best_target: Position = target_terrains[0]
+        best_score = self.land_num_to_score[self.context.get_number(best_target)]
+        for target_terrain in target_terrains:
+            if self.context.get_number(target_terrain) > best_score:
+                best_score = self.context.get_number(target_terrain)
+                best_target = target_terrain
+        for player_index in self.get_other_player_indexes():
+            if self.context.move_robber(best_target, player_index) == Exceptions.OK:
+                return
+            
             
