@@ -63,6 +63,12 @@ class MyBot(CatanBot):
             return
         return
 
+    def stage3(self):
+        # Build cities, trade, buy development cards at chance 1/3
+        self.build_city()
+        self.try_build_development_cards()
+        self.trade_with_bank()
+
     def try_build_development_cards(self):
         if random.randint(0, self.development_card_chance):
             if self.context.buy_development_card() == Exceptions.OK:
