@@ -206,13 +206,15 @@ class MyBot(CatanBot):
         my_terrains = self.get_player_terrains(self.context.get_player_index())
         target_terrains = set(self.context.get_terrains()).difference(my_terrains)
         target_terrains.remove((0,0))
+        self.context.log_info(f"target terrains: {target_terrains}")
         best_score = 0
         best_target = None
         for target_terrain in target_terrains:
             if self.context.get_number(target_terrain) is not None and self.land_num_to_score.get(self.context.get_number(target_terrain)) > best_score:
                 best_score = self.land_num_to_score.get(self.context.get_number(target_terrain))
                 best_target = target_terrain
-        if self.context.move_robber(best_target, -1) != Exceptions.ILLEGAL_PLAYER_INDEX:
-            return
+        for i in range(-1, 4):
+            if self.context.move_robber(best_target, i) != Exceptions.ILLEGAL_PLAYER_INDEX:
+                return
             
             
