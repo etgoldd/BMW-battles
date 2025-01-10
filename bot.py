@@ -65,7 +65,14 @@ class MyBot(CatanBot):
         buildings = self.context.get_player_buildings(self.context.get_player_index())
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
-                self.context.build_city(pos)
+                try:
+                    self.context.build_city(pos)
+                except Exceptions.OUT_OF_ITEMS:
+                    return False
+                except Exceptions.NOT_ENOUGH_RESOURCES:
+                    return False
+
+        return False
 
     def build_settlement(self):
         intersections= self.context.get_intersections()
@@ -101,7 +108,7 @@ class MyBot(CatanBot):
         min_resource = res_counts.index(min(res_counts))
         for i, count in enumerate(res_counts):
             if count >= self.min_count_to_trade:
-                self.context.maritime_trade(res_counts[i], Resources(min_resource))
+                self.context.maritime_trade(Resources(i), Resources(min_resource))
                 return True
         return False
 
