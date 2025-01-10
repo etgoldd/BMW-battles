@@ -4,7 +4,7 @@ import math
 
 
 class PRICES:
-    ROAD = ResourceCounts(lumber=1, brick=1),
+    ROAD = ResourceCounts(lumber=1, brick=1)
     SETTLEMENT = ResourceCounts(lumber=1, brick=1, grain=1, wool=1)
     CITY = ResourceCounts(grain=2, ore=3)
     DEVELOPMENT_CARD = ResourceCounts(grain=1, wool=1, ore=1)
@@ -45,20 +45,27 @@ class MyBot(CatanBot):
         self.city_amounts = 0
 
     def play(self):
+        has_settlement_location = len(self.valid_settlement_locations_now()) != 0
+        self.context.log_info(f"has_settlement_location: {has_settlement_location}")
         self.cards = self.context.get_resource_counts()
         if self.build_city():
             return
         elif self.build_settlement():
             return
-        elif self.build_road():
+        elif self.build_road(PRICES.SETTLEMENT if has_settlement_location else None):
             return
         elif self.trade_with_bank():
             return
-        elif self.try_build_development_cards():
+        elif self.try_build_development_cards(PRICES.SETTLEMENT if has_settlement_location else None):
             return
         return
 
-    def try_build_development_cards(self):
+    def try_build_development_cards(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.DEVELOPMENT_CARD):
+            return False
         if random.randint(0, self.development_card_chance):
             if self.context.buy_development_card() == Exceptions.OK:
                 return True
@@ -77,7 +84,12 @@ class MyBot(CatanBot):
         elif dev_cards[DevelopmentCards.KNIGHT] > 0:
             self.context.play_knight()
 
-    def build_city(self):
+    def build_city(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.CITY):
+            return False
         buildings = self.context.get_player_buildings(self.context.get_player_index())
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
@@ -88,8 +100,30 @@ class MyBot(CatanBot):
                 else:
                     return False
         return False
+    
+    def valid_settlement_locations_now(self):
+        roads = self.context.get_player_roads(self.context.get_player_index())
+        valid_locations=[]
+        for intersection in self.context.get_intersections():
+            if self.context.get_current_building(intersection):
+                continue
+            edges = self.context.get_adjacent_edges(intersection)
+            if not (set(roads) & set(edges)):
+                continue
+            adj_intersections = self.context.get_adjacent_intersections(intersection)
+            for adj in adj_intersections:
+                if self.context.get_current_building(adj):
+                    break
+            else:
+                valid_locations.append(intersection)
+        return valid_locations
 
-    def build_settlement(self):
+    def build_settlement(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.SETTLEMENT):
+            return False
         intersections= self.context.get_intersections()
         random.shuffle(intersections)
         for intersection in intersections:
@@ -104,13 +138,17 @@ class MyBot(CatanBot):
 
         return False
 
-    def build_road(self):
+    def build_road(self, save_cards=None):
+        my_cards = self.cards
+        if save_cards is not None:
+            my_cards -= save_cards
+        if not (my_cards >= PRICES.ROAD):
+            return False
         edges= self.context.get_edges()
         random.shuffle(edges)
         for edge in edges:
             e = self.context.build_road(edge)
             if e == Exceptions.OK:
-                self.context.log_info("built road")
                 return True
             elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
