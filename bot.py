@@ -128,23 +128,22 @@ class MyBot(CatanBot):
         for i, count in enumerate(res_counts):
             if count >= self.min_count_to_trade:
                 self.context.log_info(f"trading {i} with {min_resource}")
-                self.context.maritime_trade(min_resource, Resources(min_resource))
+                self.context.maritime_trade(i, Resources(min_resource))
                 return True
         return False
 
     def place_settlement_and_road(self):
-        best_position: Position | None = None
-        best_rank = 0
-        for position in self.context.get_intersections():
-            if self.context.get_current_building(position):
-                continue
-            rank = self.rank_intersection(position)
-            if rank > best_rank:
-                best_position = position
-                best_rank = rank
-        if best_position:
-            self.context.build_settlement(best_position)
-            self.context.build_road(self.context.get_adjacent_edges(best_position)[0])
+        position_ranks = [(position, self.rank_intersection(position))
+                          for position in self.context.get_intersections()]
+        self.context.log_info(position_ranks)
+        position_ranks.sort(key=lambda x: x[1], reverse=True)
+        self.context.log_info(position_ranks)
+        for pos in position_ranks:
+            e = self.context.build_settlement(pos[0])
+            if e == Exceptions.OK:
+                self.context.log_info(f"built settlement at {pos[0]}")
+                self.context.build_road(self.context.get_adjacent_edges(pos[0])[0])
+                break
 
     def drop_resources(self):
         resources = self.context.get_resource_counts()
@@ -180,26 +179,26 @@ class MyBot(CatanBot):
                 indexes.append(player_index)
         return indexes
 
-    def move_robber(self):
-        """
-        Generates the set of terrains that we aren't on and the enemy is on
-        """
-        my_terrains = self.context.get_player_terrains(self.context.get_player_index())
-        random.shuffle(my_terrains)
-        other_terrain_groups = [self.get_player_terrains(index) for index in self.get_other_player_indexes()]
-        enemy_terrains = set()
-        for other_terrains in other_terrain_groups:
-            enemy_terrains.union(other_terrains)
-        target_terrains: set[Position] = enemy_terrains.difference(my_terrains)
+    # def move_robber(self):
+    #     """
+    #     Generates the set of terrains that we aren't on and the enemy is on
+    #     """
+        # my_terrains = self.context.get_player_terrains(self.context.get_player_index())
+        # random.shuffle(my_terrains)
+        # other_terrain_groups = [self.get_player_terrains(index) for index in self.get_other_player_indexes()]
+        # enemy_terrains = set()
+        # for other_terrains in other_terrain_groups:
+        #     enemy_terrains.union(other_terrains)
+        # target_terrains: set[Position] = enemy_terrains.difference(my_terrains)
 
-        best_target: Position = target_terrains[0]
-        best_score = self.land_num_to_score[self.context.get_number(best_target)]
-        for target_terrain in target_terrains:
-            if self.context.get_number(target_terrain) > best_score:
-                best_score = self.context.get_number(target_terrain)
-                best_target = target_terrain
-        for player_index in self.get_other_player_indexes():
-            if self.context.move_robber(best_target, player_index) == Exceptions.OK:
-                return
+        # best_target: Position = target_terrains[0]
+        # best_score = self.land_num_to_score[self.context.get_number(best_target)]
+        # for target_terrain in target_terrains:
+        #     if self.context.get_number(target_terrain) > best_score:
+        #         best_score = self.context.get_number(target_terrain)
+        #         best_target = target_terrain
+        # for player_index in self.get_other_player_indexes():
+        #     if self.context.move_robber(best_target, player_index) == Exceptions.OK:
+        #         return
             
             
