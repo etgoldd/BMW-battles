@@ -1,4 +1,5 @@
 from api import *
+import random
 
 
 class PRICES:
@@ -9,7 +10,7 @@ class PRICES:
 
 
 class MyBot(CatanBot):
-    
+
     def setup(self):
         pass
 
@@ -23,25 +24,38 @@ class MyBot(CatanBot):
             return
         elif self.trade_with_bank():
             return
-        return 
+        return
 
     def build_city(self):
         return
-    
+
     def build_settlement(self):
-        return
-    
+        intersections= self.context.get_intersections()
+        random.shuffle(intersections)
+        for intersection in intersections:
+            try:
+                self.context.build_settlement(intersection)
+                return True
+            except Exceptions.NOT_ENOUGH_RESOURCES:
+                return False
+            except Exceptions.ILLEGAL_POSITION:
+                pass
+
+        return False
+
+
+
     def build_road(self):
         return
-    
+
     def trade_with_bank(self):
         return
 
-            
+
 
     def place_settlement_and_road(self):
         pass
 
     def drop_resources(self):
-        resources = 
+        resources =
         self.context.set_resources_to_drop()
