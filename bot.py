@@ -58,6 +58,18 @@ class MyBot(CatanBot):
             return
         return
 
+    def stage2(self):
+        roads_near_roads = self.get_roads_next_to_road()
+        # Try build road next to road.
+        if self.build_settlement():
+            return
+        if len(roads_near_roads) > 0 and self.context.build_road(roads_near_roads[0]):
+            return
+        if self.try_build_development_cards():
+            return
+        if self.trade_with_bank():
+            return
+
     def stage3(self):
         # Build cities, trade, buy development cards at chance 1/3
         if self.build_city():
@@ -82,7 +94,10 @@ class MyBot(CatanBot):
         elif dev_cards[DevelopmentCards.MONOPOLY] > 0:
             self.context.play_monopoly(self.most_needed_resource())
         elif dev_cards[DevelopmentCards.ROAD_BUILDING] > 0:
-            pass # self.context.play_road_building(self.)  # TODO: fix
+            roads_near_roads = self.get_roads_next_to_road()
+            # Try to play 2 roads
+            if len(roads_near_roads) >= 2:
+                self.context.play_road_building(roads_near_roads[:1])  # TODO: fix
         elif dev_cards[DevelopmentCards.KNIGHT] > 0:
             self.context.play_knight()
 
