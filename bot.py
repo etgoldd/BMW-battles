@@ -119,7 +119,7 @@ class MyBot(CatanBot):
         diff = total - sum(resources)
         for _ in range(diff):
             while True:
-                dropped_res = random.randint(0, 5)
+                dropped_res = random.randrange(0, 5)
                 if resources[dropped_res] > 0:
                     resources[res_index] -= 1
                     break
