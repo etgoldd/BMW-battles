@@ -73,7 +73,7 @@ class MyBot(CatanBot):
         pass
 
     def drop_resources(self):
-        resources = API.get_resource_counts()
+        resources = self.context.get_resource_counts()
         total = sum(resources)
         for res_index, res_count in enumerate(resources):
             resources[res_index] = math.ceil(res_count / 2)
