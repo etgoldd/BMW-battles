@@ -14,19 +14,28 @@ class MyBot(CatanBot):
         pass
 
     def play(self):
-        cards = self.context.get_resource_counts()
-        lumber, brick, grain, wool, ore = cards
-        if can_build_city:
-            build_city
+        self.cards = self.context.get_resource_counts()
+        if self.build_city():
             return
-        elif can_place_settlement:
-            build_best_settlement
+        elif self.build_settlement():
             return
-        elif can_place_road:
-            build_road
+        elif self.build_road():
             return
-        elif trade_with_bank:
+        elif self.trade_with_bank():
             return
+        return 
+
+    def build_city(self):
+        return
+    
+    def build_settlement(self):
+        return
+    
+    def build_road(self):
+        return
+    
+    def trade_with_bank(self):
+        return
 
             
 
