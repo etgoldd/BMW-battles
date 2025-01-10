@@ -1,4 +1,5 @@
 # LUMBER = <Resources.LUMBER: 0>
+import random
 # BRICK = <Resources.BRICK: 1>
 # GRAIN = <Resources.GRAIN: 2>
 # WOOL = <Resources.WOOL: 3>
@@ -63,9 +64,22 @@ class MyBot(CatanBot):
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
                 self.context.build_city(pos)
-    
+
     def build_settlement(self):
-        return
+        intersections= self.context.get_intersections()
+        random.shuffle(intersections)
+        for intersection in intersections:
+            try:
+                self.context.build_settlement(intersection)
+                return True
+            except Exceptions.NOT_ENOUGH_RESOURCES:
+                return False
+            except Exceptions.ILLEGAL_POSITION:
+                pass
+
+        return False
+
+
 
     def build_road(self):
         return
