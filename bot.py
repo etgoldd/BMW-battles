@@ -35,7 +35,7 @@ class MyBot(CatanBot):
         land_num = self.context.get_number(position)
         land_score = self.land_num_to_score[land_num]
         value = self.virtual_land_value[land.value] * land_score
-        # self.virtual_land_value[land.value] /= self.divide_when_taken[land.value]
+        self.virtual_land_value[land.value] /= self.divide_when_taken[land.value]
         return value
 
     def rank_intersection(self, position: Tuple[int, int]):
