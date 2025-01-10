@@ -146,18 +146,25 @@ class MyBot(CatanBot):
                 break
 
     def drop_resources(self):
+        """
+        Drops half of all resources
+        """
         resources = self.context.get_resource_counts()
         total = sum(resources)
+        target_drop = math.floor(total / 2)
+        if total < 7:
+            return
+        dropped_resources = ResourceCounts(0, 0, 0, 0, 0)
         for res_index, res_count in enumerate(resources):
-            resources[res_index] = math.ceil(res_count / 2)
-        diff = total - sum(resources)
-        for _ in range(diff):
-            while True:
-                dropped_res = random.randrange(0, 5)
-                if resources[dropped_res] > 0:
-                    resources[res_index] -= 1
-                    break
-        self.context.set_resources_to_drop(resources)
+            dropped_resources[res_index] = math.floor(res_count / 2)
+        diff = target_drop - sum(dropped_resources)
+        while diff > 0:
+            dropped_index = random.randrange(0, 5)
+            if resources[dropped_index] - dropped_resources[dropped_index] > 0:
+                dropped_resources[res_index] += 1
+                diff -= 1
+        if self.context.set_resources_to_drop(dropped_resources) == Exceptions.NOT_ENOUGH_RESOURCES:
+            return
 
     def get_player_terrains(self, player_index: int) -> set[Position]:
         buildings = self.context.get_player_buildings(player_index)
