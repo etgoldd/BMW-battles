@@ -1,5 +1,4 @@
 # LUMBER = <Resources.LUMBER: 0>
-import random
 # BRICK = <Resources.BRICK: 1>
 # GRAIN = <Resources.GRAIN: 2>
 # WOOL = <Resources.WOOL: 3>
