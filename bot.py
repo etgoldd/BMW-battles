@@ -65,9 +65,12 @@ class MyBot(CatanBot):
 
     def stage3(self):
         # Build cities, trade, buy development cards at chance 1/3
-        self.build_city()
-        self.try_build_development_cards()
-        self.trade_with_bank()
+        if self.build_city():
+            return
+        if self.try_build_development_cards():
+            return
+        if self.trade_with_bank():
+            return
 
     def try_build_development_cards(self):
         if random.randint(0, self.development_card_chance):
@@ -133,6 +136,8 @@ class MyBot(CatanBot):
 
     def most_needed_resource(self):
         res_counts = self.context.get_resource_counts()
+        # if self.stage == 3:
+        #     res_counts = self.context.get_resource_counts()[Resources.GRAIN:Resources.ORE + 1]
         return Resources(res_counts.index(min(res_counts)))
 
     def trade_with_bank(self):
