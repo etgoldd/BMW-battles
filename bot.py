@@ -4,7 +4,7 @@ from api import *
 class PRICES:
     ROAD = ResourceCounts(lumber=1, brick=1),
     SETTLEMENT = ResourceCounts(lumber=1, brick=1, grain=1, wool=1)
-    CITY = ResourceCounts(wool=2, ore=3)
+    CITY = ResourceCounts(grain=2, ore=3)
     DEVELOPMENT_CARD = ResourceCounts(grain=1, wool=1, ore=1)
 
 
