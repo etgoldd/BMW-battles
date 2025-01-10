@@ -1,9 +1,3 @@
-# LUMBER = <Resources.LUMBER: 0>
-# BRICK = <Resources.BRICK: 1>
-# GRAIN = <Resources.GRAIN: 2>
-# WOOL = <Resources.WOOL: 3>
-# ORE = <Resources.ORE: 4>
-
 from api import *
 import random
 import math
@@ -16,6 +10,7 @@ class PRICES:
     DEVELOPMENT_CARD = ResourceCounts(grain=1, wool=1, ore=1)
 
 class MyBot(CatanBot):
+    # [LUMBER, BRICK, GRAIN, WOOL, ORE, DESERT]
     fixed_land_value = [16, 16, 16, 16, 16, 0]
     virtual_land_value = [16, 16, 16, 16, 16, 0]
     divide_when_taken = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
@@ -46,7 +41,8 @@ class MyBot(CatanBot):
         return res
 
     def setup(self):
-        pass
+        self.current_stage = 1
+        self.city_amounts = 0
 
     def play(self):
         self.cards = self.context.get_resource_counts()
@@ -87,6 +83,7 @@ class MyBot(CatanBot):
             if building == Buildings.SETTLEMENT:
                 e = self.context.build_city(pos)
                 if e == Exceptions.OK:
+                    self.city_amounts += 1
                     return True
                 else:
                     return False
@@ -98,6 +95,7 @@ class MyBot(CatanBot):
         for intersection in intersections:
             e = self.context.build_settlement(intersection)
             if e == Exceptions.OK:
+                self.context.log_info("built settlement")
                 return True
             elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
@@ -112,6 +110,7 @@ class MyBot(CatanBot):
         for edge in edges:
             e = self.context.build_road(edge)
             if e == Exceptions.OK:
+                self.context.log_info("built road")
                 return True
             elif e == Exceptions.NOT_ENOUGH_RESOURCES:
                 return False
@@ -124,29 +123,27 @@ class MyBot(CatanBot):
         return Resources(res_counts.index(min(res_counts)))
 
     def trade_with_bank(self):
-        self.context.log_info("trading with bank")
         res_counts = self.context.get_resource_counts()
         min_resource = self.most_needed_resource()
         for i, count in enumerate(res_counts):
             if count >= self.min_count_to_trade:
                 self.context.log_info(f"trading {i} with {min_resource}")
-                self.context.maritime_trade(min_resource, Resources(min_resource))
+                self.context.maritime_trade(i, Resources(min_resource))
                 return True
         return False
 
     def place_settlement_and_road(self):
-        best_position: Position | None = None
-        best_rank = 0
-        for position in self.context.get_intersections():
-            if self.context.get_current_building(position):
-                continue
-            rank = self.rank_intersection(position)
-            if rank > best_rank:
-                best_position = position
-                best_rank = rank
-        if best_position:
-            self.context.build_settlement(best_position)
-            self.context.build_road(self.context.get_adjacent_edges(best_position)[0])
+        position_ranks = [(position, self.rank_intersection(position))
+                          for position in self.context.get_intersections()]
+        self.context.log_info(position_ranks)
+        position_ranks.sort(key=lambda x: x[1], reverse=True)
+        self.context.log_info(position_ranks)
+        for pos in position_ranks:
+            e = self.context.build_settlement(pos[0])
+            if e == Exceptions.OK:
+                self.context.log_info(f"built settlement at {pos[0]}")
+                self.context.build_road(self.context.get_adjacent_edges(pos[0])[0])
+                break
 
     def drop_resources(self):
         resources = self.context.get_resource_counts()
