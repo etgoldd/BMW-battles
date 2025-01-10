@@ -82,6 +82,16 @@ class MyBot(CatanBot):
 
 
     def build_road(self):
+        edges= self.context.get_edges()
+        random.shuffle(edges)
+        for edge in edges:
+            try:
+                self.context.build_road(edge)
+                return True
+            except Exceptions.NOT_ENOUGH_RESOURCES:
+                return False
+            except Exceptions.ILLEGAL_POSITION:
+                pass
         return
 
     def trade_with_bank(self):
