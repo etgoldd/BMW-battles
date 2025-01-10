@@ -19,6 +19,7 @@ class MyBot(CatanBot):
     divide_when_taken = [2, 2, 2, 2, 2, 2]
 
     land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
+    min_count_to_trade = 6
 
     def set_fixed_land_value_to_virtual(self):
         self.fixed_land_value = self.virtual_land_value
@@ -68,7 +69,13 @@ class MyBot(CatanBot):
         return
 
     def trade_with_bank(self):
-        return
+        res_counts = self.context.get_resource_counts()
+        min_resource = res_counts.index(min(res_counts))
+        for i, count in enumerate(res_counts):
+            if count >= self.min_count_to_trade:
+                self.context.maritime_trade(res_counts[i], Resources(min_resource))
+                return True
+        return False
 
     def place_settlement_and_road(self):
         best_position: Position | None = None
