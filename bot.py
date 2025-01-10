@@ -1,4 +1,5 @@
 # LUMBER = <Resources.LUMBER: 0>
+import random
 # BRICK = <Resources.BRICK: 1>
 # GRAIN = <Resources.GRAIN: 2>
 # WOOL = <Resources.WOOL: 3>
@@ -6,6 +7,9 @@
 
 from api import *
 from typing import Tuple
+import random
+import math
+
 
 class PRICES:
     ROAD = ResourceCounts(lumber=1, brick=1),
@@ -61,11 +65,34 @@ class MyBot(CatanBot):
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
                 self.context.build_city(pos)
-    
+
     def build_settlement(self):
-        return
+        intersections= self.context.get_intersections()
+        random.shuffle(intersections)
+        for intersection in intersections:
+            try:
+                self.context.build_settlement(intersection)
+                return True
+            except Exceptions.NOT_ENOUGH_RESOURCES:
+                return False
+            except Exceptions.ILLEGAL_POSITION:
+                pass
+
+        return False
+
+
 
     def build_road(self):
+        edges= self.context.get_edges()
+        random.shuffle(edges)
+        for edge in edges:
+            try:
+                self.context.build_road(edge)
+                return True
+            except Exceptions.NOT_ENOUGH_RESOURCES:
+                return False
+            except Exceptions.ILLEGAL_POSITION:
+                pass
         return
 
     def trade_with_bank(self):
@@ -92,4 +119,17 @@ class MyBot(CatanBot):
             self.context.build_road(self.context.get_adjacent_edges(best_position)[0])
 
     def drop_resources(self):
-        resources = self.context.set_resources_to_drop()
+        resources = self.context.get_resource_counts()
+        total = sum(resources)
+        for res_index, res_count in enumerate(resources):
+            resources[res_index] = math.ceil(res_count / 2)
+        diff = total - sum(resources)
+        for _ in range(diff):
+            while True:
+                dropped_res = random.randrange(0, 5)
+                if resources[dropped_res] > 0:
+                    resources[res_index] -= 1
+                    break
+        self.context.set_resources_to_drop(resources)
+
+            
