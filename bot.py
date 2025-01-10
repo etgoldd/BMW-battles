@@ -5,8 +5,6 @@
 # ORE = <Resources.ORE: 4>
 
 from api import *
-import random
-import math
 from typing import Tuple
 
 class PRICES:
@@ -84,17 +82,4 @@ class MyBot(CatanBot):
             self.context.build_road(self.context.get_adjacent_edges(best_position)[0])
 
     def drop_resources(self):
-        resources = API.get_resource_counts()
-        total = sum(resources)
-        for res_index, res_count in enumerate(resources):
-            resources[res_index] = math.ceil(res_count / 2)
-        diff = total - sum(resources)
-        for _ in range(diff):
-            while True:
-                dropped_res = random.randint(0, 5)
-                if resources[dropped_res] > 0:
-                    resources[res_index] -= 1
-                    break
-        self.context.set_resources_to_drop(resources)
-
-            
+        resources = self.context.set_resources_to_drop()
