@@ -19,7 +19,7 @@ class MyBot(CatanBot):
             return 0
 
         score = self.land_num_to_score[land_num]
-        res = curr_land_worth[land.value] * score
+        res = self.land_worth_mult[land.value] * curr_land_worth[land.value] * score
         curr_land_worth[land.value] -= score
         return res
 
@@ -41,6 +41,7 @@ class MyBot(CatanBot):
 
         # [LUMBER, BRICK, GRAIN, WOOL, ORE, DESERT]
         self.land_worth = [36, 36, 36, 36, 36, 0]
+        self.land_worth_mult = [1, 1, 1, 0.99, 1, 1]  # slightly less want wool
 
         self.land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
         self.min_count_to_trade = 6
