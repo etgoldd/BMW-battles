@@ -45,7 +45,6 @@ class MyBot(CatanBot):
         self.city_amounts = 0
 
     def play(self):
-        self.cards = self.context.get_resource_counts()
         if self.build_city():
             return
         elif self.build_settlement():
@@ -87,6 +86,7 @@ class MyBot(CatanBot):
             self.context.play_knight()
 
     def build_city(self):
+        self.context.log_info("building city")
         buildings = self.context.get_player_buildings(self.context.get_player_index())
         for pos, building in buildings:
             if building == Buildings.SETTLEMENT:
@@ -129,17 +129,19 @@ class MyBot(CatanBot):
 
     def most_needed_resource(self):
         res_counts = self.context.get_resource_counts()
-        # if self.stage == 3:
-        #     res_counts = self.context.get_resource_counts()[Resources.GRAIN:Resources.ORE + 1]
         return Resources(res_counts.index(min(res_counts)))
 
-    def trade_with_bank(self):
+    def trade_with_bank(self, desire_card: Resources | None = None, banned_cards: list[Resources] | None = None):
+        banned_cards = banned_cards or []
         res_counts = self.context.get_resource_counts()
         min_resource = self.most_needed_resource()
+        desire_card = desire_card or min_resource
         for i, count in enumerate(res_counts):
             if count >= self.min_count_to_trade:
-                self.context.log_info(f"trading {i} with {min_resource}")
-                self.context.maritime_trade(min_resource, Resources(min_resource))
+                if i in banned_cards:
+                    continue
+                self.context.log_info(f"trading {i} with {desire_card}")
+                self.context.maritime_trade(min_resource, Resources(desire_card))
                 return True
         return False
 
@@ -178,7 +180,7 @@ class MyBot(CatanBot):
             building: tuple[Position, Buildings]
             my_terrains.union(self.context.get_adjacent_terrains(building[0]))
         return my_terrains
-    
+
     def get_other_player_indexes(self) -> list[int]:
         """
         Returns a list of the player indexes that aren't ours
@@ -212,5 +214,19 @@ class MyBot(CatanBot):
         for player_index in self.get_other_player_indexes():
             if self.context.move_robber(best_target, player_index) == Exceptions.OK:
                 return
-            
-            
+
+
+    def stage1(self):
+        cards = self.context.get_resource_counts()
+        wool = cards[Resources.WOOL]
+        ore = cards[Resources.ORE]
+
+        if self.build_city():
+            self.city_amounts += 1
+            if self.city_amounts == 2:
+                self.current_stage = 2
+            return
+        elif self.trade_with_bank(
+                desire_card=Resources.ORE if ore < wool else Resources.WOOL,
+                banned_cards=[Resources.ORE, Resources.WOOL]):
+            return
