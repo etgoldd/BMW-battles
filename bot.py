@@ -16,7 +16,7 @@ class MyBot(CatanBot):
     divide_when_taken = [0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
 
     land_num_to_score = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1, 7: 0}
-    min_count_to_trade = 5
+    min_count_to_trade = 6
     development_card_chance = 3
 
     def set_fixed_land_value_to_virtual(self):
@@ -41,9 +41,8 @@ class MyBot(CatanBot):
         return res
 
     def setup(self):
-        # [LUMBER, BRICK, GRAIN, WOOL, ORE, DESERT]
-        self.land_worth = [36, 36, 36, 36, 36, 0]
-
+        self.current_stage = 1
+        self.city_amounts = 0
 
     def play(self):
         self.cards = self.context.get_resource_counts()
@@ -119,33 +118,17 @@ class MyBot(CatanBot):
                 pass
         return
 
-    def most_needed_resource(self) -> Resources:
-        least_common_resource_score = max(self.land_worth)
-        least_common_resource_index_list = [
-            i for i, score in enumerate(self.land_worth)
-            if score == least_common_resource_score
-        ]
-        if len(least_common_resource_index) == 1: # Only one resource is the least common
-            return Resources(least_common_resource_index[0])
-        else: # Multiple resources are the least common. Choose the one with the least amount.
-            resources = self.context.get_resource_counts()
-            min_resource_amount = 100
-            min_resource_index = -1
-            for index in least_common_resource_index_list:
-                if resources[index] < min_resource_amount:
-                    min_resource_amount = resources[index]
-                    min_resource_index = index
-            return Resources(min_resource_index)
+    def most_needed_resource(self):
+        res_counts = self.context.get_resource_counts()
+        return Resources(res_counts.index(min(res_counts)))
 
-    def trade_with_bank(self) -> bool:
-        # [LUMBER, BRICK, GRAIN, WOOL, ORE, DESERT]
+    def trade_with_bank(self):
+        res_counts = self.context.get_resource_counts()
         min_resource = self.most_needed_resource()
         for i, count in enumerate(res_counts):
             if count >= self.min_count_to_trade:
-                if i in banned_cards:
-                    continue
-                self.context.log_info(f"trading {i} with {desire_card}")
-                self.context.maritime_trade(min_resource, Resources(desire_card))
+                self.context.log_info(f"trading {i} with {min_resource}")
+                self.context.maritime_trade(i, Resources(min_resource))
                 return True
         return False
 
@@ -174,6 +157,7 @@ class MyBot(CatanBot):
         dropped_resources = ResourceCounts(0, 0, 0, 0, 0)
         for res_index, res_count in enumerate(resources):
             dropped_resources[res_index] = math.floor(res_count / 2)
+
         diff = target_drop - sum(dropped_resources)
         while diff > 0:
             dropped_index = random.randrange(0, 5)
@@ -181,6 +165,7 @@ class MyBot(CatanBot):
                 dropped_resources[res_index] += 1
                 diff -= 1
         if self.context.set_resources_to_drop(dropped_resources) == Exceptions.NOT_ENOUGH_RESOURCES:
+            self.context.log_info("Not enough resources to drop")
             return
 
     def get_player_terrains(self, player_index: int) -> set[Position]:
@@ -190,8 +175,8 @@ class MyBot(CatanBot):
             building: tuple[Position, Buildings]
             my_terrains = my_terrains.union(self.context.get_adjacent_terrains(building[0]))
         return my_terrains
-
-
+        
+    
     def get_other_player_indexes(self) -> list[int]:
         """
         Returns a list of the player indexes that aren't ours
