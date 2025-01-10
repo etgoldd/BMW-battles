@@ -109,7 +109,6 @@ class MyBot(CatanBot):
                 return False
             elif e == Exceptions.ILLEGAL_POSITION:
                 pass
-
         return False
 
     def build_road(self):
