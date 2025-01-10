@@ -1,5 +1,6 @@
 from api import *
-
+import random
+import math
 
 class PRICES:
     ROAD = ResourceCounts(lumber=1, brick=1),
@@ -20,5 +21,17 @@ class MyBot(CatanBot):
         pass
 
     def drop_resources(self):
-        resources = 
-        self.context.set_resources_to_drop()
+        resources = API.get_resource_counts()
+        total = sum(resources)
+        for res_index, res_count in enumerate(resources):
+            resources[res_index] = math.ceil(res_count / 2)
+        diff = total - sum(resources)
+        for _ in range(diff):
+            while True:
+                dropped_res = random.randint(0, 5)
+                if resources[dropped_res] > 0:
+                    resources[res_index] -= 1
+                    break
+        self.context.set_resources_to_drop(resources)
+
+            
