@@ -26,7 +26,10 @@ class MyBot(CatanBot):
         return 
 
     def build_city(self):
-        return
+        buildings = self.context.get_player_buildings(self.context.get_player_index())
+        for pos, building in buildings:
+            if building == Buildings.SETTLEMENT:
+                self.context.build_city(pos)
     
     def build_settlement(self):
         return
